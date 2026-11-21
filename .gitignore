@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Code généré depuis les .proto
+*_pb2.py
+*_pb2_grpc.py
+*_pb2.pyi
+
+# Données locales des répliques
+*.db
+*.db-wal
+*.db-shm
+donnees/
+
+# Secrets — ne jamais versionner (SEC-14)
+.env
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+infra/pki/**/*.crt
+!infra/pki/.gitkeep
+
+# Éditeurs et système
+.idea/
+.vscode/
+*.swp
+.DS_Store
