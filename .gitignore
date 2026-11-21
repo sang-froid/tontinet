@@ -36,3 +36,6 @@ infra/pki/**/*.crt
 .vscode/
 *.swp
 .DS_Store
+
+# Instructions locales pour Claude Code (non versionnées)
+CLAUDE.md
