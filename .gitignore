@@ -39,3 +39,5 @@ infra/pki/**/*.crt
 
 # Instructions locales pour Claude Code (non versionnées)
 CLAUDE.md
+
+Notes_de_cours_Systemes_Repartis_Mobiles_INF2324_2026-2027.md

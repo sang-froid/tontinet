@@ -1,0 +1,509 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\setlength{\emergencystretch}{4em}
+\tolerance=1500
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage[all]{hypcap}   % un clic sur un renvoi mène au haut de la figure, pas à sa légende
+\definecolor{lien}{RGB}{101,35,41}   % bordeaux du modèle
+\hypersetup{
+  colorlinks=true, linkcolor=lien, urlcolor=lien, citecolor=lien,
+  pdftitle={TontiNet : dossier de conception (jalon J1)},
+  pdfsubject={Systèmes répartis et mobiles, EC 1INF2324, Master 2 IFRI},
+}
+% Renvois entièrement cliquables : « figure 3 » et non seulement « 3 »
+\newcommand{\figref}[1]{\hyperref[#1]{figure~\ref*{#1}}}
+\newcommand{\tabref}[1]{\hyperref[#1]{tableau~\ref*{#1}}}
+\newcommand{\secref}[1]{\hyperref[#1]{section~\ref*{#1}}}
+\usepackage{pifont}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+
+\lstset{
+  basicstyle=\ttfamily\small, keywordstyle=\bfseries, commentstyle=\itshape,
+  showstringspaces=false, breaklines=true, frame=single, numbers=left, numberstyle=\tiny,
+  numbersep=6pt, tabsize=2, captionpos=b, belowskip=6pt, aboveskip=6pt,
+  literate={é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {à}{{\`a}}1 {â}{{\^a}}1 {É}{{\'E}}1
+           {ç}{{\c c}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {ù}{{\`u}}1 {û}{{\^u}}1 {ï}{{\"i}}1
+           {œ}{{\oe}}2 {Â}{{\^A}}1 {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1
+           {≡}{{$\equiv$}}1 {⊑}{{$\sqsubseteq$}}1 {…}{{\ldots}}1 {→}{{$\rightarrow$}}1,
+}
+% Contrat Protocol Buffers (proto3)
+\lstdefinelanguage{Protobuf}{
+  morekeywords={syntax,package,message,service,rpc,returns,stream,repeated,reserved,
+    oneof,map,string,bool,bytes,int32,int64,uint64,to},
+  sensitive=true, morecomment=[l]{//}, morestring=[b]",
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small TontiNet : dossier de conception (J1)}
+\rhead{\small Master 2, Systèmes répartis et mobiles}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Couleurs des protocoles dans les figures (REST reprend le bordeaux du modèle)
+\colorlet{cREST}{lien}
+\definecolor{cGRPC}{RGB}{38,62,122}
+\definecolor{cMQTT}{RGB}{28,106,66}
+\definecolor{cRAFT}{RGB}{105,112,122}
+
+\begin{document}
+
+% ══════════════════════════════════════════════════════════════════
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+\textbf{RÉPUBLIQUE DU BÉNIN}\\[4pt]
+***************\\[4pt]
+
+\noindent
+\begin{minipage}[c]{0.15\textwidth}\centering\includegraphics[width=2.2cm]{logo-uac.jpeg}\end{minipage}
+\hfill
+\begin{minipage}[c]{0.64\textwidth}\centering\textbf{MINISTÈRE DE L'ENSEIGNEMENT SUPÉRIEUR ET\\[2pt]DE LA RECHERCHE SCIENTIFIQUE}\end{minipage}
+\hfill
+\begin{minipage}[c]{0.15\textwidth}\centering\includegraphics[width=2.2cm]{logo-ifri.png}\end{minipage}
+
+\vspace{4pt}
+*******************************\\[4pt]
+\textbf{UNIVERSITÉ D'ABOMEY-CALAVI (UAC)}\\[4pt]
+*******************************\\[4pt]
+\textbf{\textit{INSTITUT DE FORMATION ET DE RECHERCHE EN INFORMATIQUE (IFRI)}}\\[1.1cm]
+
+\textbf{MASTER 2}\\
+\textit{Systèmes répartis et mobiles (EC 1INF2324)}\\[0.5cm]
+
+Projet TontiNet, jalon J1\\[0.8cm]
+
+{\LARGE\bfseries Dossier de conception de TontiNet}\\[6pt]
+{\large\itshape Architecture, choix de communication, format des messages et sémantique d'appel}\\[0.6cm]
+
+\textbf{Génie Logiciel et SIRI}\\[1cm]
+
+\noindent
+\begin{minipage}[t]{0.55\textwidth}
+\setstretch{1.15}
+\underline{\textbf{Réalisé par :}}\\[6pt]
+LOKOSSOU Iréné (GL)\\
+GOUDALO Brice (GL)\\
+MVOGO Bandolo Samira Anaïs (GL)\\
+ZOCLI Patrick Nonvignon (GL)\\
+OGA Baba-Tundé Koba O. Précieux (SIRI)\\
+DOSSOU Akom Onidoun Perseverance (GL)\\
+KONNON Waren (GL)\\
+VIOU M. M. Nathanaël K. Malick (SIRI)\\
+KANFON Yvans (GL)
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.40\textwidth}\raggedleft
+\underline{\textbf{Sous la supervision de :}}\\[8pt]
+Dr. Emery ASSOGBA
+\end{minipage}
+
+\vfill
+\textbf{Année académique :} 2026--2027
+\end{center}
+\end{titlepage}
+
+{\hypersetup{linkcolor=black}\tableofcontents}   % sommaire cliquable, mais en noir
+\newpage
+
+% ══════════════════════════════════════════════════════════════════
+\section{Objet et hypothèses}
+
+Ce dossier fixe l'architecture de TontiNet, le mécanisme de communication de chaque échange, le
+format des messages et la sémantique d'appel de chaque opération ; il sert de contrat entre
+l'équipe serveur et l'équipe mobile. Les identifiants RG, EF, SEC et ADR renvoient au cahier des
+charges [CDC], les numéros de leçon aux notes de cours [NC]. Nous supposons des pannes par arrêt
+ou par omission : trois répliques en tolèrent une ($n = 2f + 1$, $f = 1$). Le réseau est
+asynchrone, donc chaque appel porte un délai d'attente, et l'heure du téléphone n'ordonne jamais
+rien (RG16). Principe directeur, issu du théorème CAP : \textbf{la collecte est AP, le versement
+est CP}.
+
+% ══════════════════════════════════════════════════════════════════
+\section{Architecture}
+\label{sec:architecture}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=1cm, line cap=round, line join=round]
+\path[fill=black!4, draw=black!12, line width=0.45pt, rounded corners=0.176cm] (0.211,-0.211) rectangle (4.435,-8.800);
+\path[fill=black!4, draw=black!12, line width=0.45pt, rounded corners=0.176cm] (4.646,-0.211) rectangle (14.256,-8.800);
+\path[fill=black!4, draw=black!12, line width=0.45pt, rounded corners=0.176cm] (14.467,-0.211) rectangle (17.389,-8.800);
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.422,-0.598) {TERMINAUX · FLUTTER};
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.858,-0.598) {SERVICE RÉPARTI · LABO / CLOUD (DOCKER COMPOSE)};
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (14.678,-0.598) {EXTERNE};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (0.458,-0.845) rectangle (4.189,-2.077);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (0.704,-1.355) {Tableau de bord web};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.704,-1.725) {organisatrice · navigateur};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (0.458,-2.358) rectangle (4.189,-6.653);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (0.704,-2.763) {Application collecteur};
+\path[fill=black!3, draw=black!28, line width=0.45pt, rounded corners=0.088cm] (0.669,-2.957) rectangle (3.978,-3.731);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.880,-3.274) {Interface (widgets)};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.880,-3.573) {lit et écrit en local};
+\path[fill=black!3, draw=black!28, line width=0.45pt, rounded corners=0.088cm] (0.669,-3.837) rectangle (3.978,-4.611);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.880,-4.154) {Stockage local};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.880,-4.453) {SQLite chiffré · outbox};
+\path[fill=black!3, draw=black!28, line width=0.45pt, rounded corners=0.088cm] (0.669,-4.717) rectangle (3.978,-5.491);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.880,-5.034) {Synchroniseur};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.880,-5.333) {recul 2 à 64 s, gigue};
+\path[fill=black!3, draw=black!28, line width=0.45pt, rounded corners=0.088cm] (0.669,-5.597) rectangle (3.978,-6.371);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.880,-5.914) {Client réseau};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.880,-6.213) {seul à connaître l'URL};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (0.458,-6.899) rectangle (4.189,-8.131);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (0.704,-7.410) {Application membre};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.704,-7.779) {soldes · notifications};
+\node[anchor=base, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (2.323,-8.554) {hors connexion d'abord};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (4.928,-0.845) rectangle (6.477,-8.131);
+\node[anchor=base, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (5.702,-1.373) {point};
+\node[anchor=base, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (5.702,-1.654) {d'entrée};
+\node[anchor=base, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (5.702,-1.936) {unique};
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (5.702,-3.978) {Traefik};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.702,-4.330) {proxy inverse};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.702,-4.752) {TLS 1.3};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.702,-5.034) {443 · 8883};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.702,-5.456) {limitation};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.702,-5.738) {de débit};
+\draw[draw=cREST, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (4.189,-1.267) -- (4.893,-1.267);
+\draw[draw=cMQTT, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (4.928,-1.760) -- (4.224,-1.760);
+\draw[draw=cREST, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (3.978,-5.984) -- (4.893,-5.984);
+\draw[draw=cREST, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (4.189,-7.286) -- (4.893,-7.286);
+\draw[draw=cMQTT, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (4.928,-7.779) -- (4.224,-7.779);
+\node[circle, draw=cREST, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cREST, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.506,-1.267) {2};
+\node[circle, draw=cMQTT, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cMQTT, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.611,-1.760) {7};
+\node[circle, draw=cREST, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cREST, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.470,-5.984) {1};
+\node[circle, draw=cREST, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cREST, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.506,-7.286) {1};
+\node[circle, draw=cMQTT, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cMQTT, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.611,-7.779) {6};
+\path[fill=white, draw=black!40, line width=0.54pt, dash pattern=on 2.2pt off 1.8pt, rounded corners=0.176cm] (7.005,-0.845) rectangle (14.115,-6.195);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (7.251,-1.214) {Répliques r1 · r2 · r3 (même image)};
+\draw[draw=cREST, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (6.477,-3.520) -- (6.970,-3.520);
+\node[anchor=base, text=cREST, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (6.723,-3.362) {REST};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (9.328,-1.373) rectangle (12.144,-2.922);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (9.610,-1.760) {r1};
+\path[fill=lien!8, draw=lien, line width=0.60pt, rounded corners=0.158cm] (9.997,-1.531) rectangle (11.264,-1.848);
+\node[anchor=base, text=lien, inner sep=0pt, font=\fontsize{5}{6}\selectfont\bfseries] at (10.630,-1.760) {LEADER};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.610,-2.130) {API REST · domaine};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.610,-2.429) {G-Set · nœud Raft};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.610,-2.728) {orchestrateur de saga};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (7.286,-4.048) rectangle (10.102,-5.597);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (7.568,-4.435) {r2};
+\path[fill=black!5, draw=black!40, line width=0.60pt, rounded corners=0.158cm] (7.955,-4.206) rectangle (9.293,-4.523);
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{5}{6}\selectfont\bfseries] at (8.624,-4.435) {SUIVEUR};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (7.568,-4.805) {API REST · domaine};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (7.568,-5.104) {G-Set · nœud Raft};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (7.568,-5.403) {SQLite · outbox};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (11.018,-4.048) rectangle (13.834,-5.597);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (11.299,-4.435) {r3};
+\path[fill=black!5, draw=black!40, line width=0.60pt, rounded corners=0.158cm] (11.686,-4.206) rectangle (13.024,-4.523);
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{5}{6}\selectfont\bfseries] at (12.355,-4.435) {SUIVEUR};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (11.299,-4.805) {API REST · domaine};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (11.299,-5.104) {G-Set · nœud Raft};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (11.299,-5.403) {SQLite · outbox};
+\draw[draw=cGRPC, line width=1.00pt, {Stealth[length=1.5mm,width=1.15mm]}-{Stealth[length=1.5mm,width=1.15mm]}] (8.835,-4.013) -- (9.627,-2.957);
+\draw[draw=cRAFT, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt] (9.117,-4.048) -- (9.962,-2.922);
+\draw[draw=cGRPC, line width=1.00pt, {Stealth[length=1.5mm,width=1.15mm]}-{Stealth[length=1.5mm,width=1.15mm]}] (12.637,-4.013) -- (11.845,-2.957);
+\draw[draw=cRAFT, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt] (12.355,-4.048) -- (11.510,-2.922);
+\draw[draw=cGRPC, line width=1.00pt, {Stealth[length=1.5mm,width=1.15mm]}-{Stealth[length=1.5mm,width=1.15mm]}] (10.138,-4.611) -- (10.982,-4.611);
+\draw[draw=cRAFT, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt] (10.102,-5.104) -- (11.018,-5.104);
+\node[circle, draw=cGRPC, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cGRPC, font=\fontsize{6}{7.2}\selectfont\bfseries] at (9.222,-3.485) {4};
+\node[circle, draw=cRAFT, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=black!70, font=\fontsize{6}{7.2}\selectfont\bfseries] at (11.933,-3.485) {5};
+\node[circle, draw=cGRPC, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cGRPC, font=\fontsize{6}{7.2}\selectfont\bfseries] at (10.560,-4.611) {3};
+\node[anchor=base east, text=cGRPC, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (8.906,-3.362) {transfert};
+\node[anchor=base east, text=cGRPC, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (8.906,-3.626) {au leader};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (12.566,-3.362) {consensus};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (12.566,-3.626) {Raft};
+\node[anchor=base, text=cGRPC, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (10.560,-5.984) {réplication W = 2 · anti-entropie toutes les 5 s};
+\draw[draw=cREST, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (12.144,-2.147) -- (14.678,-2.147);
+\node[circle, draw=cREST, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cREST, font=\fontsize{6}{7.2}\selectfont\bfseries] at (13.411,-2.147) {8};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (14.714,-1.373) rectangle (17.178,-4.013);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (14.960,-1.795) {Prestataire};
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (14.960,-2.094) {de paiement};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (14.960,-2.482) {(simulé, FastAPI)};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (14.960,-2.886) {débit · crédit};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (14.960,-3.186) {Idempotency-Key};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (14.960,-3.590) {saga T2 · T3 · C2};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (7.568,-6.899) rectangle (12.320,-8.131);
+\node[anchor=base west, text=black, inner sep=0pt, font=\fontsize{7}{8.4}\selectfont\bfseries] at (7.850,-7.410) {Courtier MQTT · Mosquitto};
+\node[anchor=base west, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (7.850,-7.779) {QoS 1 · retain · sessions · ACL};
+\draw[draw=cMQTT, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (7.568,-7.515) -- (6.512,-7.515);
+\node[anchor=base, text=cMQTT, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (7.040,-7.357) {MQTT};
+\draw[draw=cMQTT, line width=1.00pt, -{Stealth[length=1.5mm,width=1.15mm]}] (8.448,-6.195) -- (8.448,-6.864);
+\node[circle, draw=cMQTT, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=cMQTT, font=\fontsize{6}{7.2}\selectfont\bfseries] at (8.448,-6.494) {6};
+\node[anchor=base west, text=cMQTT, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (8.730,-6.582) {publication asynchrone (outbox)};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.123cm] (12.461,-6.899) rectangle (14.115,-8.131);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (13.288,-7.427) {Prometheus};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (13.288,-7.762) {Grafana};
+\draw[draw=cRAFT, line width=0.75pt, dash pattern=on 0.9pt off 1.4pt, -{Stealth[length=1.5mm,width=1.15mm]}] (13.288,-6.864) -- (13.288,-6.248);
+\node[circle, draw=cRAFT, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=black!70, font=\fontsize{6}{7.2}\selectfont\bfseries] at (13.288,-6.530) {9};
+\draw[draw=cREST, line width=1.00pt] (0.246,-9.328) -- (0.774,-9.328);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (0.915,-9.398) {REST / HTTPS};
+\draw[draw=cGRPC, line width=1.00pt] (3.027,-9.328) -- (3.555,-9.328);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (3.696,-9.398) {gRPC / mTLS};
+\draw[draw=cMQTT, line width=1.00pt] (5.650,-9.328) -- (6.178,-9.328);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (6.318,-9.398) {MQTT (TLS, WSS)};
+\draw[draw=cRAFT, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt] (8.870,-9.328) -- (9.398,-9.328);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.539,-9.398) {Raft (PySyncObj)};
+\draw[draw=cRAFT, line width=0.75pt, dash pattern=on 0.9pt off 1.4pt] (12.232,-9.328) -- (12.760,-9.328);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (12.901,-9.398) {métriques};
+\node[circle, draw=black!80, fill=white, line width=0.8pt, inner sep=0pt, minimum size=0.317cm, text=black!80, font=\fontsize{6}{7.2}\selectfont\bfseries] at (14.890,-9.328) {n};
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (15.189,-9.398) {échange n};
+\end{tikzpicture}%
+}
+\caption{Architecture de TontiNet ; les pastilles renvoient aux échanges du \tabref{tab:echanges}}
+\label{fig:architecture}
+\end{figure}
+
+TontiNet combine les trois styles du cours [NC 1.2.1] : \textbf{client-serveur} entre les
+terminaux et l'API, \textbf{réplication entre pairs} entre les répliques,
+\textbf{publication/abonnement} pour les notifications (\figref{fig:architecture}). L'application
+Flutter fonctionne \emph{hors connexion d'abord}. Toute réplique accepte une cotisation (chemin
+AP : \textbf{G-Set indexé par l'UUID}, copie sur un pair, anti-entropie) ; paramètres,
+bénéficiaires et sagas passent par un \textbf{journal Raft} dont seul le leader propose les
+entrées (chemin CP). Le versement est une saga orchestrée par le leader (T1 geler, T2 débiter,
+T3 créditer, T4 clore ; compensations C2 puis C1). Les notifications passent par une \emph{outbox}.
+
+% ══════════════════════════════════════════════════════════════════
+\section{Choix de communication pour chaque échange}
+\label{sec:choix}
+
+\begin{table}[H]
+\centering
+\small
+\setstretch{1.05}
+\begin{tabularx}{\linewidth}{@{}c >{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{1.45cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{N°} & \textbf{Échange} & \textbf{Mécanisme, format} & \textbf{Délai, QoS} & \textbf{Justification} \\
+\midrule
+1 & Mobile $\rightarrow$ API : saisie, lectures, synchronisation & REST sur HTTPS, JSON + gzip & 5 s &
+  Passe proxys et pare-feu, contrat OpenAPI ; \texttt{PUT} + identifiant client est idempotent ;
+  Protobuf ne ferait gagner que 0,8 Mo par mois (activité 2.2). \\
+2 & Tableau de bord $\rightarrow$ API & REST sur HTTPS, JSON & 5 s & Même API publique, requêtes ponctuelles. \\
+3 & Réplique $\leftrightarrow$ réplique : réplication, anti-entropie & gRPC + mTLS, Protobuf & 2 s &
+  Contrat \texttt{.proto} strict, deadlines propagées, flux serveur. \\
+4 & Suiveur $\rightarrow$ leader : opérations CP & gRPC + mTLS, Protobuf & 2 s & Le résultat (accepté, 409, 503) revient au client. \\
+5 & Réplique $\leftrightarrow$ réplique : consensus & Raft de PySyncObj (TCP) & 1,5 à 3 s & Imposé par la bibliothèque (ADR-03). \\
+6 & Réplique $\rightarrow$ courtier $\rightarrow$ membre & MQTT 5 sur TLS, JSON & QoS 1 &
+  Téléphones souvent hors ligne : session persistante, messages retenus (RG6). \\
+7 & Courtier $\rightarrow$ tableau de bord & MQTT sur WSS, JSON & QoS 0 & Survit à la panne de la réplique qui a servi la page. \\
+8 & Leader $\rightarrow$ prestataire de paiement & REST + \texttt{Idempotency-Key} & 5 s, disjoncteur &
+  Service externe : saga plutôt que validation à deux phases, bloquante (ADR-04). \\
+9 & Prometheus $\rightarrow$ répliques & HTTP, \texttt{GET /metrics} & 5 s & Supervision, hors du chemin métier. \\
+\bottomrule
+\end{tabularx}
+\caption{Mécanisme retenu pour chaque échange (numéros de la \figref{fig:architecture})}
+\label{tab:echanges}
+\end{table}
+
+Nous écartons gRPC jusqu'au mobile (gain négligeable, débogage plus difficile, ADR-01) et toute
+connexion permanente sur le téléphone, coupée en arrière-plan [NC 5.1.1]. Sécurité : TLS 1.3,
+mTLS entre répliques, jeton JWT de 15 min, ACL sur le courtier, aucune donnée personnelle dans
+les sujets ni les journaux.
+
+% ══════════════════════════════════════════════════════════════════
+\section{Format des messages}
+\label{sec:format}
+
+L'API publique (\texttt{/v1}) échange du JSON UTF-8 : champs en français sans accent, montants
+\textbf{entiers} en francs CFA, cotisation identifiée par un \textbf{UUID créé sur le téléphone},
+dates ISO 8601 UTC (\texttt{saisie\_le} reste indicatif). L'en-tête \texttt{X-Request-Id} suit la
+requête de REST à gRPC puis à MQTT.
+
+\begin{lstlisting}[numbers=none, caption={Enregistrer une cotisation : requête puis réponse}, label={lst:rest}]
+PUT /v1/cotisations/7f3c2a9e-5b1d-4c8e-9a21-0d4e5f6a8b90
+{"tontine": "femmes-zogbo", "tour": 3, "membre": "M07",
+ "montant": 2000, "collecteur": "C1",
+ "saisie_le": "2026-11-21T09:14:03Z"}
+200 OK {"id": "7f3c2a9e-...", "doublon": false,
+        "solde_tour": 14000, "replication": "quorum"}
+\end{lstlisting}
+
+\texttt{replication} vaut \texttt{degradee} si une seule réplique a pu écrire : le téléphone
+renvoie alors la cotisation, sans risque, jusqu'à obtenir \texttt{quorum}. Les erreurs suivent la
+RFC 9457 avec un \texttt{code} stable (\texttt{ID\_CONTENU\_DIFFERENT}, \texttt{TOUR\_VERSE},
+\texttt{PAS\_DE\_MAJORITE}\ldots). Le curseur de \texttt{GET /v1/sync} est un vecteur de
+versions par réplique d'origine (ADR-07). Entre répliques, le contrat Protobuf fait foi :
+
+\begin{lstlisting}[language=Protobuf, caption={Extrait du contrat \texttt{proto/tontinet/v1/}}, label={lst:proto}]
+message Cotisation {
+  string id = 1;  string tontine = 2;  int32 tour = 3;
+  string membre = 4;  int64 montant = 5;  string collecteur = 6;
+  string saisie_le = 7;  string recue_par = 8;
+  reserved 9 to 15;                  // numéros jamais réutilisés
+}
+service Replication {                // mTLS, deadline 2 s
+  rpc Repliquer(Lot) returns (Accuse);         // écriture W = 2
+  rpc Comparer(Resume) returns (Resume);       // anti-entropie
+  rpc Recuperer(Resume) returns (stream Cotisation);
+}
+service Coordination {               // suiveur → leader
+  rpc Transmettre(CommandeCP) returns (ResultatCP);
+}
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\small
+\setstretch{1.05}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{6.9cm} c c >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Sujet MQTT} & \textbf{QoS} & \textbf{Retenu} & \textbf{Charge JSON} \\
+\midrule
+\texttt{tontinet/\{t\}/membres/\allowbreak\{m\}/cotisations} & 1 & non & \texttt{event\_id}, \texttt{cotisation\_id}, \texttt{montant}, \texttt{solde\_tour} \\
+\texttt{tontinet/\{t\}/tours/\allowbreak\{n\}/beneficiaire} & 1 & oui & \texttt{event\_id}, \texttt{membre} \\
+\texttt{tontinet/\{t\}/tours/\{n\}/etat} & 1 & oui & \texttt{event\_id}, \texttt{etat}, \texttt{version} \\
+\texttt{tontinet/\{t\}/tableau} & 0 & non & \texttt{event\_id}, \texttt{type}, \texttt{solde\_tour} \\
+\texttt{tontinet/systeme/\allowbreak repliques/\{r\}/etat} & 1 & oui & \texttt{en\_ligne} ou \texttt{hors\_ligne} \\
+\bottomrule
+\end{tabularx}
+\caption{Sujets MQTT : identifiants opaques uniquement, jamais de nom ni de numéro (RG7)}
+\label{tab:mqtt}
+\end{table}
+
+Le membre garde une session persistante de 7 jours et ignore un \texttt{event\_id} déjà reçu.
+Vers le prestataire, chaque étape porte \texttt{Idempotency-Key: \{versement\_id\}:T2} (puis
+\texttt{:T3}, \texttt{:C2}) : une requête rejouée renvoie la même réponse, sans second débit.
+
+% ══════════════════════════════════════════════════════════════════
+\section{Sémantique d'appel de chaque opération}
+\label{sec:semantique}
+
+On ne réémet automatiquement \textbf{que} ce qui est idempotent [NC 2.2.1] ; « exactement une
+fois » s'obtient par \textbf{au moins une fois + idempotence}.
+
+\begin{table}[H]
+\centering
+\small
+\setstretch{1.05}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.1cm} >{\raggedright\arraybackslash}p{2.75cm} >{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Opération} & \textbf{Idempotente ?} & \textbf{Sémantique} & \textbf{Mécanisme et réessai} \\
+\midrule
+Enregistrer une cotisation (\texttt{PUT}, lot compris) & Oui, par l'UUID & Au moins une fois + idempotence &
+  Même contenu $\rightarrow$ \texttt{doublon: true}, autre $\rightarrow$ 409 (RG8) ; réessai sur réseau, délai ou 5xx (2 à 64 s, $\pm$ 20 \%), jamais sur 4xx. \\
+Lectures, \texttt{GET /v1/sync} & Oui (sûres) & Au moins une fois & Réessai libre. \\
+Créer tontine, inscrire membre, affecter collecteur & Oui & Au moins une fois & \texttt{PUT} sur identifiant client ; version attendue, 409 si conflit. \\
+Désigner le bénéficiaire & Oui (même membre) & Au moins une fois & Validé par le leader ; autre membre $\rightarrow$ 409 ; sans majorité $\rightarrow$ 503. \\
+Déclencher le versement, annuler une cotisation & Non & \textbf{Au plus une fois} &
+  \texttt{Idempotency-Key} et unicité (tontine, tour) dans Raft : une réémission renvoie le même \texttt{versement\_id}. \\
+Connexion, rafraîchissement du jeton & Non & Au plus une fois & Pas de réessai automatique ; jeton consommé toléré 30 s. \\
+Appels gRPC entre répliques & Oui (union, clé) & Au moins une fois & Deadline 2 s ; premier accusé suffit ; réessai 1, 2, 4 s. \\
+Étapes et compensations de la saga & Rendues idempotentes & Au moins une fois &
+  Clés \texttt{\{versement\_id\}:Tn}, disjoncteur ; échec de T3 $\rightarrow$ C2 puis C1. \\
+Publications MQTT & Oui (\texttt{event\_id}) & Au moins une fois (QoS 1) & Outbox republiée jusqu'au PUBACK ; tableau de bord en QoS 0. \\
+\bottomrule
+\end{tabularx}
+\caption{Sémantique d'appel retenue pour chaque opération}
+\label{tab:semantique}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=1cm, line cap=round, line join=round]
+\path[fill=black!4, rounded corners=0.141cm] (0.141,-0.141) rectangle (7.110,-11.334);
+\path[fill=black!4, rounded corners=0.141cm] (7.216,-0.141) rectangle (13.270,-11.334);
+\path[fill=black!4, rounded corners=0.141cm] (13.376,-0.141) rectangle (17.459,-11.334);
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.352,-0.458) {TÉLÉPHONE DU COLLECTEUR};
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (7.427,-0.458) {SERVICE RÉPARTI};
+\node[anchor=base west, text=black!60, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (13.587,-0.458) {NOTIFICATION};
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (1.232,-1.408) -- (1.232,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (3.344,-1.408) -- (3.344,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (5.808,-1.408) -- (5.808,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (9.152,-1.408) -- (9.152,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (11.968,-1.408) -- (11.968,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (14.432,-1.408) -- (14.432,-11.264);
+\draw[draw=black!40, line width=0.50pt, dash pattern=on 1.8pt off 1.8pt] (16.456,-1.408) -- (16.456,-11.264);
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (0.352,-0.634) rectangle (2.112,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (1.232,-0.950) {Interface};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (1.232,-1.232) {(widgets)};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (2.376,-0.634) rectangle (4.312,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (3.344,-0.950) {Stockage};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (3.344,-1.232) {SQLite chiffré};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (4.611,-0.634) rectangle (7.005,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (5.808,-0.950) {Synchroniseur};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (5.808,-1.232) {+ client réseau};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (7.920,-0.634) rectangle (10.384,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (9.152,-0.950) {Réplique};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.152,-1.232) {d'entrée (r2)};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (10.912,-0.634) rectangle (13.024,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (11.968,-0.950) {Pairs};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (11.968,-1.232) {r1, r3};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (13.517,-0.634) rectangle (15.347,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (14.432,-0.950) {Courtier};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (14.432,-1.232) {MQTT};
+\path[fill=white, draw=black!80, line width=0.60pt, rounded corners=0.106cm] (15.558,-0.634) rectangle (17.354,-1.408);
+\node[anchor=base, text=black, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (16.456,-0.950) {App membre};
+\node[anchor=base, text=black!70, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (16.456,-1.232) {M07};
+\draw[draw=black!20, line width=0.45pt] (0.246,-1.725) -- (17.354,-1.725);
+\node[anchor=base west, text=black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.352,-1.637) {1 · Saisie locale, même sans réseau};
+\draw[draw=black!80, line width=0.75pt, -{Stealth[length=1.5mm,width=1.15mm]}] (1.232,-2.182) -- (3.309,-2.182);
+\node[anchor=base west, text=black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (1.373,-2.077) {INSERT (id = UUID v4, statut en\_attente)};
+\draw[draw=black!80, line width=0.75pt, dash pattern=on 2.7pt off 1.8pt, -{Stealth[length=1.5mm,width=1.15mm]}] (3.344,-2.675) -- (1.267,-2.675);
+\node[anchor=base west, text=black!80, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (1.373,-2.570) {affichée « en attente » en moins de 300 ms};
+\draw[draw=black!20, line width=0.45pt] (0.246,-3.133) -- (17.354,-3.133);
+\node[anchor=base west, text=black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.352,-3.045) {2 · Synchronisation montante : au moins une fois + idempotence};
+\node[anchor=base west, text=black!70, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (5.949,-3.555) {déclencheur : saisie, retour au premier plan, réseau revenu};
+\path[fill=cGRPC!10, draw=cGRPC, line width=0.45pt, rounded corners=0.035cm] (9.064,-3.942) rectangle (9.240,-6.301);
+\draw[draw=cREST, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (5.808,-3.942) -- (9.029,-3.942);
+\node[anchor=base west, text=cREST, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (5.949,-3.837) {PUT /v1/cotisations/\{id\} (5 s)};
+\path[fill=white, draw=cGRPC!45, line width=0.60pt, rounded corners=0.088cm] (9.398,-4.154) rectangle (14.115,-4.928);
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.574,-4.470) {contrôles RG1 · RG10 · RG13 · RG15};
+\node[anchor=base west, text=black!80, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont] at (9.574,-4.770) {transaction : cotisation + outbox};
+\draw[draw=cGRPC, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (9.240,-5.350) -- (11.933,-5.350);
+\node[anchor=base west, text=cGRPC, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (9.363,-5.245) {Repliquer(Lot) $\times$ 2 · deadline 2 s};
+\draw[draw=cGRPC, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt, -{Stealth[length=1.5mm,width=1.15mm]}] (11.968,-5.808) -- (9.275,-5.808);
+\node[anchor=base west, text=cGRPC, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (9.363,-5.702) {Accuse : 1\textsuperscript{er} accusé $\Rightarrow$ W = 2};
+\draw[draw=cREST, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt, -{Stealth[length=1.5mm,width=1.15mm]}] (9.064,-6.266) -- (5.843,-6.266);
+\node[anchor=base east, text=cREST, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (8.941,-6.160) {200 \{doublon: false, quorum\}};
+\draw[draw=black!80, line width=0.75pt, -{Stealth[length=1.5mm,width=1.15mm]}] (5.808,-6.723) -- (3.379,-6.723);
+\node[anchor=base, text=black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (4.576,-6.618) {statut = synchronisee};
+\draw[draw=black!20, line width=0.45pt] (0.246,-7.181) -- (17.354,-7.181);
+\node[anchor=base west, text=black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (0.352,-7.093) {3 · Notification asynchrone (patron outbox)};
+\draw[draw=cMQTT, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (9.152,-7.638) -- (14.397,-7.638);
+\node[anchor=base west, text=cMQTT, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (9.328,-7.533) {PUBLISH QoS 1 …/membres/M07/…};
+\draw[draw=cMQTT, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt, -{Stealth[length=1.5mm,width=1.15mm]}] (14.432,-8.061) -- (9.187,-8.061);
+\node[anchor=base east, text=cMQTT, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (14.291,-7.955) {PUBACK : ligne d'outbox marquée publiée};
+\draw[draw=cMQTT, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (14.432,-8.518) -- (16.421,-8.518);
+\node[anchor=base, text=cMQTT, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (15.435,-8.413) {PUBLISH};
+\node[anchor=base, text=black!70, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (15.435,-8.800) {session persistante};
+\path[draw=black!70, line width=0.54pt, rounded corners=0.106cm] (4.154,-9.011) rectangle (16.051,-11.229);
+\path[fill=black!70] (4.154,-9.011) -- (8.237,-9.011) -- (8.237,-9.258) -- (8.096,-9.398) -- (4.154,-9.398) -- cycle;
+\node[anchor=base west, text=white, inner sep=0pt, font=\fontsize{6}{7.2}\selectfont\bfseries] at (4.330,-9.275) {alt · la réponse est perdue};
+\draw[draw=cREST, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (5.808,-9.715) -- (9.117,-9.715);
+\node[anchor=base west, text=cREST, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (5.949,-9.610) {PUT /v1/cotisations/\{id\}};
+\draw[draw=cREST, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt] (9.152,-10.138) -- (7.251,-10.138);
+\path[draw=red!70!black, line width=1.08pt] (7.005,-10.014) -- (7.216,-10.261) (7.216,-10.014) -- (7.005,-10.261);
+\node[anchor=base east, text=red!70!black, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont] at (8.941,-10.032) {200 perdue};
+\node[anchor=base west, text=black!70, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (5.949,-10.525) {délai de 5 s dépassé, recul 2 s ± 20 \%, même id};
+\draw[draw=cREST, line width=0.80pt, -{Stealth[length=1.5mm,width=1.15mm]}] (5.808,-10.736) -- (9.117,-10.736);
+\draw[draw=cREST, line width=0.80pt, dash pattern=on 2.7pt off 1.8pt, -{Stealth[length=1.5mm,width=1.15mm]}] (9.152,-11.088) -- (5.843,-11.088);
+\node[anchor=base east, text=cREST, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\ttfamily] at (8.941,-11.000) {200 \{doublon: true\}};
+\node[anchor=base west, text=black!70, fill=white, inner sep=0.5pt, font=\fontsize{6}{7.2}\selectfont\itshape] at (9.363,-11.000) {solde et outbox inchangés : aucune 2\textsuperscript{e} notification};
+\end{tikzpicture}%
+}
+\caption{Enregistrer une cotisation : une réémission est reconnue comme doublon}
+\label{fig:sequence}
+\end{figure}
+
+Erreur réseau, délai dépassé, 5xx, \texttt{UNAVAILABLE} : la requête a pu être traitée ou non, on
+réessaie avec recul \textbf{si l'opération est idempotente} ; 401 : rafraîchir le jeton puis
+réessayer une fois ; 403, 404, 409, 422 : ne jamais réessayer (\figref{fig:sequence}).
+
+\end{document}
